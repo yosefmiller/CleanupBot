@@ -1,0 +1,223 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <world name="apartment">
+
+    <physics name="2ms" type="ignored">
+      <max_step_size>0.002</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- Plugins -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+
+    <scene>
+      <ambient>0.7 0.68 0.65 1</ambient>
+      <background>0.92 0.92 0.94 1</background>
+    </scene>
+
+    <gui fullscreen="0">
+      <camera name="user_camera">
+        <pose>-0.35 -0.75 0.45 0 0.35 0.75</pose>
+        <view_controller>orbit</view_controller>
+      </camera>
+    </gui>
+
+    <light type="directional" name="ceiling_light">
+      <cast_shadows>true</cast_shadows>
+      <pose>2.5 0 4 0 0 0</pose>
+      <diffuse>0.95 0.93 0.90 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <direction>-0.2 0.1 -0.95</direction>
+    </light>
+
+    <!-- Hardwood Apartment Floor -->
+    <model name="apartment_floor">
+      <static>true</static>
+      <pose>2.5 0 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>20 20</size></plane></geometry>
+          <surface>
+            <friction>
+              <ode><mu>0.8</mu><mu2>0.8</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>12 10</size></plane></geometry>
+          <material>
+            <ambient>0.76 0.60 0.42 1</ambient>
+            <diffuse>0.76 0.60 0.42 1</diffuse>
+            <specular>0.15 0.15 0.15 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Room Perimeter Walls: 6m x 4m x 0.8m high -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>2.5 2.0 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>6.05 0.05 0.8</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>6.05 0.05 0.8</size></box></geometry>
+          <material><ambient>0.88 0.88 0.85 1</ambient><diffuse>0.88 0.88 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_south">
+      <static>true</static>
+      <pose>2.5 -2.0 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>6.05 0.05 0.8</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>6.05 0.05 0.8</size></box></geometry>
+          <material><ambient>0.88 0.88 0.85 1</ambient><diffuse>0.88 0.88 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_east">
+      <static>true</static>
+      <pose>5.5 0 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.05 4.05 0.8</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.05 4.05 0.8</size></box></geometry>
+          <material><ambient>0.88 0.88 0.85 1</ambient><diffuse>0.88 0.88 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-0.5 0 0.4 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.05 4.05 0.8</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.05 4.05 0.8</size></box></geometry>
+          <material><ambient>0.88 0.88 0.85 1</ambient><diffuse>0.88 0.88 0.85 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===== APARTMENT FURNITURE ===== -->
+    <!-- Living Room Sofa (Flush along South Wall, facing North) -->
+    <include>
+      <uri>model://sofa</uri>
+      <name>sofa</name>
+      <pose>2.5 -1.45 0 0 0 1.5708</pose>
+    </include>
+
+    <!-- Cozy Armchair in Living Room Corner -->
+    <include>
+      <uri>model://armchair</uri>
+      <name>armchair</name>
+      <pose>4.2 -1.35 0 0 0 2.4</pose>
+    </include>
+
+    <!-- Dining / Study Table -->
+    <include>
+      <uri>model://table</uri>
+      <name>table</name>
+      <pose>3.0 1.40 0 0 0 0</pose>
+    </include>
+
+    <!-- Dining Chair -->
+    <include>
+      <uri>model://chair</uri>
+      <name>chair</name>
+      <pose>3.0 0.95 0 0 0 1.5708</pose>
+    </include>
+
+    <!-- Bookshelf against North Wall (Flush along North Wall, facing South into room) -->
+    <include>
+      <uri>model://bookshelf</uri>
+      <name>bookshelf</name>
+      <pose>1.0 1.95 0 0 0 0</pose>
+    </include>
+
+    <!-- ===== FLOOR OBJECTS IN CAMERA VIEW ===== -->
+    <!-- 1. Small Toy Wooden Cube (5cm) - Anchored obstacle at 50cm for Module 6 collision safety rehearsal -->
+    <model name="wood_cube_toy">
+      <static>true</static>
+      <pose>0.50 0.00 0.025 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.05 0.05 0.05</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.05 0.05 0.05</size></box></geometry>
+          <material>
+            <ambient>0.75 0.55 0.35 1</ambient>
+            <diffuse>0.75 0.55 0.35 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 2. Small Infant Choking Hazard / Toy: Scaled Fidget Spinner (7.5cm) -->
+    <include>
+      <uri>model://fidget_spinner</uri>
+      <name>fidget_spinner</name>
+      <pose>0.48 -0.15 0.005 0 0 0</pose>
+    </include>
+
+    <!-- 3. Classic Coca-Cola Can (Scaled to standard 6.6cm diameter, 12.2cm height) -->
+    <include>
+      <uri>model://coke_can</uri>
+      <name>coke_can</name>
+      <pose>0.65 0.14 0 0 0 0</pose>
+    </include>
+
+    <!-- 4. Red Party Plastic Cup (Graspable 7.4cm) -->
+    <include>
+      <uri>model://plastic_cup</uri>
+      <name>plastic_cup</name>
+      <pose>0.80 -0.10 0 0 0 0</pose>
+    </include>
+
+    <!-- 5. Small Red Cricket Toy Ball (7.0cm) -->
+    <include>
+      <uri>model://cricket_ball</uri>
+      <name>toy_ball</name>
+      <pose>0.95 0.05 0.035 0 0 0</pose>
+    </include>
+
+    <!-- 6. Beverage Can (Scaled 6.6cm x 12.2cm) -->
+    <include>
+      <uri>model://beer_can</uri>
+      <name>beer_can</name>
+      <pose>1.15 -0.15 0 0 0 0</pose>
+    </include>
+
+    <!-- 7. Kitchen Bowl on floor -->
+    <include>
+      <uri>model://bowl</uri>
+      <name>bowl</name>
+      <pose>1.35 0.12 0 0 0 0</pose>
+    </include>
+
+    <!-- ===== GOAL PAD (Target retrieval destination) ===== -->
+    <model name="goal_pad">
+      <static>true</static>
+      <pose>4.5 0 0.001 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.4 0.4 0.002</size></box></geometry>
+          <material>
+            <ambient>0.1 0.7 0.2 1</ambient>
+            <diffuse>0.1 0.7 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

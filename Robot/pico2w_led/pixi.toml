@@ -1,0 +1,60 @@
+[workspace]
+channels = ["conda-forge"]
+name = "pico2w_firmware"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[dependencies]
+cmake = ">=3.28"
+ninja = "*"
+git   = "*"
+tar   = "*"
+curl  = "*"
+c-compiler   = "*"   # Host C compiler (for pioasm and picotool)
+cxx-compiler = "*"   # Host C++ compiler (for pioasm and picotool)
+
+[activation]
+env = {
+    # Point CMake and the Pico SDK to our locally managed toolchain and SDK
+    PICO_SDK_PATH = "$PIXI_PROJECT_ROOT/.tools/pico-sdk",
+    PICO_TOOLCHAIN_PATH = "$PIXI_PROJECT_ROOT/.tools/arm-none-eabi/bin",
+    PATH = "$PIXI_PROJECT_ROOT/.tools/arm-none-eabi/bin:$PATH",
+    PICOTOOL_FETCH_FROM_GIT_PATH = "$PIXI_PROJECT_ROOT/.tools/picotool",
+}
+
+[tasks]
+# 1. Download official ARM GNU toolchain (GCC 13.3) locally into .tools/
+setup-toolchain = """
+    mkdir -p .tools && [ -d .tools/arm-none-eabi ] || (\
+        curl -Lo .tools/arm-toolchain.tar.xz \"https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz\" && \
+        tar -xf .tools/arm-toolchain.tar.xz -C .tools && \
+        mv .tools/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi .tools/arm-none-eabi && \
+        rm .tools/arm-toolchain.tar.xz)
+"""
+
+# 2. Clone Pico SDK 2.x locally into .tools/
+setup-sdk = """
+    mkdir -p .tools && [ -d .tools/pico-sdk ] || (\
+        git clone --depth 1 -b 2.3.1 https://github.com/raspberrypi/pico-sdk.git .tools/pico-sdk && \
+        cd .tools/pico-sdk && \
+        git submodule update --init --recursive)
+    """
+
+# 3. Pre-clone picotool so CMake doesn't have to clone during build
+setup-picotool = """
+  mkdir -p .tools && [ -d .tools/picotool ] || \
+    (git clone --depth 1 -b 2.3.1 https://github.com/raspberrypi/picotool.git .tools/picotool)
+"""
+
+# 4. Full setup task combining both
+bootstrap = { depends-on = ["setup-toolchain", "setup-sdk", "setup-picotool"] }
+
+# 5. Configure CMake targeting the Pico 2 W
+configure = { cmd = "cmake -B build -G Ninja -DPICO_BOARD=pico2_w", depends-on = ["bootstrap"] }
+
+# 6. Build the UF2 firmware
+build = { cmd = "ninja -C build", depends-on = ["configure"] }
+
+# 7. Clean build artifacts
+clean = "rm -rf build"
+

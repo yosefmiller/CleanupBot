@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CleanupBot: Sim-to-Real Telemetry Dashboard</title>
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --surface: #151e32;
+            --surface-hover: #1c2842;
+            --border: #23304c;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #10b981;
+            --accent-purple: #a855f7;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 2.5rem;
+            line-height: 1.5;
+        }
+        .header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+        .header h1 { font-size: 2rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.75rem; }
+        .header p { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; }
+        .stat-card .title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+        .stat-card .val { font-size: 1.85rem; font-weight: 700; margin-top: 0.25rem; }
+        .val-blue { color: var(--accent-blue); }
+        .val-green { color: var(--accent-green); }
+        .val-red { color: var(--accent-red); }
+        .section-title { font-size: 1.25rem; font-weight: 600; margin: 2rem 0 1rem; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+        .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; overflow-x: auto; margin-bottom: 2.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+        th { background: #1a253e; color: var(--text-muted); font-weight: 600; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+        td { padding: 1rem; border-bottom: 1px solid var(--border); }
+        tr:hover td { background: var(--surface-hover); }
+        code { background: #0b0f19; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-size: 0.8rem; color: var(--accent-blue); border: 1px solid var(--border); }
+        .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; }
+        .badge-approved { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .badge-blocked { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .badge-rejected { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.25rem; }
+        .move-card { background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; }
+        .move-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.75rem; }
+        .move-card-header h4 { font-size: 1rem; color: #fff; }
+        .bar-group { margin-bottom: 0.75rem; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .bar-track { background: #0b0f19; height: 10px; border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        .bar-fill { height: 100%; border-radius: 5px; transition: width 0.6s ease; }
+        .bar-sim { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+        .bar-encoder { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+        .bar-real { background: linear-gradient(90deg, #059669, #10b981); }
+        .delta-tag { font-size: 0.75rem; color: var(--text-muted); background: #0b0f19; padding: 0.35rem 0.65rem; border-radius: 0.4rem; display: inline-block; margin-top: 0.5rem; border: 1px solid var(--border); }
+        .result-alert { padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.85rem; }
+        .alert-blocked { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
+        .alert-rejected { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #fde68a; }
+        .footer { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 CleanupBot: Sim-to-Real Telemetry Verification</h1>
+        <p>Module 6 Lab Record • Generated: 2026-11-04 16:42:34</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="title">Total Rehearsals</div>
+            <div class="val val-blue">4</div>
+        </div>
+        <div class="stat-card">
+            <div class="title">Safety Auto-Rejections</div>
+            <div class="val val-red">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="title">Approved Hardware Runs</div>
+            <div class="val val-green">4</div>
+        </div>
+    </div>
+
+    <div class="section-title">📊 Complete Rehearsal & Telemetry Comparison Table</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Move / Action</th>
+                    <th>Commanded</th>
+                    <th>Gazebo Twin</th>
+                    <th>Real Encoders</th>
+                    <th>Real Tape & IMU</th>
+                    <th>Safety Gate</th>
+                    <th>Sim-to-Real Analysis</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+            <tr>
+                <td><strong>turn_right (90.00 °)</strong></td>
+                <td><code>v=0.00 m/s, w=-0.80 rad/s, t=2.0 s</code></td>
+                <td>0.000 m, -91.0°</td>
+                <td>0.006 m</td>
+                <td>0.000 m, -101.6°</td>
+                <td><span class="badge badge-approved">APPROVED (Executed)</span></td>
+                <td>ΔDist = 0 mm, ΔTurn = 10.6°</td>
+            </tr>
+        
+            <tr>
+                <td><strong>forward (0.30 m)</strong></td>
+                <td><code>v=0.20 m/s, w=0.00 rad/s, t=1.5 s</code></td>
+                <td>0.326 m, -0.0°</td>
+                <td>0.310 m</td>
+                <td>0.310 m, 8.4°</td>
+                <td><span class="badge badge-approved">APPROVED (Executed)</span></td>
+                <td>ΔDist = 16 mm, ΔTurn = 8.4°</td>
+            </tr>
+        
+            <tr>
+                <td><strong>turn_left (90.00 °)</strong></td>
+                <td><code>v=0.00 m/s, w=0.80 rad/s, t=2.0 s</code></td>
+                <td>0.000 m, 91.4°</td>
+                <td>0.005 m</td>
+                <td>0.000 m, 106.0°</td>
+                <td><span class="badge badge-approved">APPROVED (Executed)</span></td>
+                <td>ΔDist = 0 mm, ΔTurn = 14.6°</td>
+            </tr>
+        
+            <tr>
+                <td><strong>forward (0.40 m)</strong></td>
+                <td><code>v=0.15 m/s, w=0.00 rad/s, t=2.7 s</code></td>
+                <td>0.415 m, 0.0°</td>
+                <td>0.435 m</td>
+                <td>0.435 m, 22.4°</td>
+                <td><span class="badge badge-approved">APPROVED (Executed)</span></td>
+                <td>ΔDist = 20 mm, ΔTurn = 22.4°</td>
+            </tr>
+        
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-title">📈 Visual Accuracy & Delta Breakdown</div>
+    <div class="cards-grid">
+        
+            <div class="move-card">
+                <div class="move-card-header">
+                    <h4>Move 1: turn_right (90.00 °)</h4>
+                    <span class="badge badge-approved">APPROVED (Executed)</span>
+                </div>
+                <div class="move-card-body">
+                    
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Gazebo Turn</span><span>-91.0°</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-sim" style="width: 89%;"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Real BNO085 IMU</span><span>-101.6°</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-real" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="delta-tag">Angular Discrepancy: 10.6°</div>
+                
+                </div>
+            </div>
+        
+            <div class="move-card">
+                <div class="move-card-header">
+                    <h4>Move 2: forward (0.30 m)</h4>
+                    <span class="badge badge-approved">APPROVED (Executed)</span>
+                </div>
+                <div class="move-card-body">
+                    
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Gazebo Sim</span><span>0.326 m</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-sim" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Real Encoders</span><span>0.310 m</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-encoder" style="width: 95%;"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Real Ground-Truth Tape</span><span>0.310 m</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-real" style="width: 95%;"></div></div>
+                    </div>
+                    <div class="delta-tag">Distance Delta: 16 mm | Gyro Heading Drift: +8.4°</div>
+                
+                </div>
+            </div>
+        
+            <div class="move-card">
+                <div class="move-card-header">
+                    <h4>Move 3: turn_left (90.00 °)</h4>
+                    <span class="badge badge-approved">APPROVED (Executed)</span>
+                </div>
+                <div class="move-card-body">
+                    
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Gazebo Turn</span><span>+91.4°</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-sim" style="width: 86%;"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Real BNO085 IMU</span><span>+106.0°</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-real" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="delta-tag">Angular Discrepancy: 14.6°</div>
+                
+                </div>
+            </div>
+        
+            <div class="move-card">
+                <div class="move-card-header">
+                    <h4>Move 4: forward (0.40 m)</h4>
+                    <span class="badge badge-approved">APPROVED (Executed)</span>
+                </div>
+                <div class="move-card-body">
+                    
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Gazebo Sim</span><span>0.415 m</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-sim" style="width: 95%;"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Real Encoders</span><span>0.435 m</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-encoder" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar-label"><span>Real Ground-Truth Tape</span><span>0.435 m</span></div>
+                        <div class="bar-track"><div class="bar-fill bar-real" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="delta-tag">Distance Delta: 20 mm | Gyro Heading Drift: +22.4°</div>
+                
+                </div>
+            </div>
+        
+    </div>
+
+    <div class="footer">
+        CleanupBot Sim-to-Real Verification Suite • ROS 2 Jazzy & Gazebo Harmonic • FastMCP & ROSA Agent
+    </div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "pitch_bias_deg": 8.39,
+  "roll_bias_deg": -1.01,
+  "camera_height_cm": 11.91,
+  "forward_offset_cm": 10.0,
+  "focal_length_px": 954.17,
+  "reference_width_px": 1024,
+  "reference_height_px": 768,
+  "last_calibrated_pitch_deg": 8.39,
+  "intrinsics_calibrated": true,
+  "extrinsics_calibrated": true,
+  "dist_coeffs": [
+    -0.250523,
+    1.055211,
+    0.011043,
+    -0.015481,
+    -1.331916
+  ],
+  "camera_matrix": [
+    [
+      943.917,
+      0.0,
+      474.433
+    ],
+    [
+      0.0,
+      964.421,
+      409.002
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "intrinsics_summary": {
+    "rms_reprojection_error_px": 0.315,
+    "fx": 943.92,
+    "fy": 964.42,
+    "cx": 474.43,
+    "cy": 409.0,
+    "fov_x_deg": 57.0,
+    "fov_y_deg": 43.4
+  }
+}

@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+
+# Pixi Environments
+.pixi/
+
+# ROS 2 & Colcon Workspace Builds
+build/
+install/
+log/
+.micro_ros_agent_ws/
+
+# Embedded Firmware Builds & Toolchains
+Robot/pico2w_led/build/
+Robot/pico2w_led/.tools/
+Robot/micro-ros-builder/src/
+Robot/micro-ros-builder/.build/
+*.uf2
+*.bin
+
+# Secrets & Environment Files
+*.env
+!*.env.example
+
+# Runtime Caches & Weights
+robot_memory_db/*.sqlite3
+VisionMCP/weights/*.pt
+snapshots/*.png
+
+# IDE & OS Artifacts
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+~*.tmp
+
+Fritzing/

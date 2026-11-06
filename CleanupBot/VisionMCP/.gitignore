@@ -1,0 +1,27 @@
+# Python cache & build
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Pixi environment & local environment
+.pixi/
+.env
+
+# Large model weights
+weights/*.pt
+weights/**/*.pt
+
+# Ephemeral test crops & debug images
+images/*_test.jpg
+images/*_feed.jpg
+images/gazebo_*.jpg
+images/extrinsics_calibration_overlay.jpg
+
+# Logs
+*.log
+/tmp/
+images/*
+
+legacy/

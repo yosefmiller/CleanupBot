@@ -1,0 +1,126 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+    <model name="fidget_spinner">
+        <static>false</static>
+        <link name="fidget_spinner_link">
+            <pose>0 0 0 0 0 0</pose>
+            <inertial>
+                <mass>0.055</mass>
+                <inertia>
+                    <ixx>1e-5</ixx><ixy>0</ixy><ixz>0</ixz>
+                    <iyy>1e-5</iyy><iyz>0</iyz>
+                    <izz>2e-5</izz>
+                </inertia>
+            </inertial>
+            <collision name="fidget_spinner_col">
+                <pose>0 0 0 1.5708 0 0</pose>
+                <geometry>
+                    <mesh>
+                        <uri>model://fidget_spinner/meshes/Spinner_scaled.stl</uri>
+                        <scale>0.52 0.52 0.52</scale>
+                    </mesh>
+                </geometry>
+            </collision>
+            <visual name="fidget_spinner_vis">
+                <pose>0 0 0 1.5708 0 0</pose>
+                <geometry>
+                    <mesh>
+                        <uri>model://fidget_spinner/meshes/Spinner_scaled.stl</uri>
+                        <scale>0.52 0.52 0.52</scale>
+                    </mesh>
+                </geometry>
+                <material>
+                    <diffuse>0.86 0.08 0.24 1.0</diffuse>
+                    <ambient>0.86 0.08 0.24 1.0</ambient>
+                    <specular>0.5 0.5 0.5 1.0</specular>
+                </material>
+            </visual>
+            <collision name="cylinder_weight1_col">
+                <pose>0 0.026 0 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <length>0.008</length>
+                        <radius>0.0125</radius>
+                    </cylinder>
+                </geometry>
+            </collision>
+            <visual name="cylinder_weight1_vis">
+                <pose>0 0.026 0 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <length>0.008</length>
+                        <radius>0.0125</radius>
+                    </cylinder>
+                </geometry>
+                <material>
+                    <ambient>0.66 1 1 1</ambient>
+                    <diffuse>0.66 1 1 1</diffuse>
+                </material>
+            </visual>
+            <collision name="cylinder_weight2_col">
+                <pose>-0.0225 -0.013 0 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <length>0.008</length>
+                        <radius>0.0125</radius>
+                    </cylinder>
+                </geometry>
+            </collision>
+            <visual name="cylinder_weight2_vis">
+                <pose>-0.0225 -0.013 0 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <length>0.008</length>
+                        <radius>0.0125</radius>
+                    </cylinder>
+                </geometry>
+                <material>
+                    <ambient>0.66 1 1 1</ambient>
+                    <diffuse>0.66 1 1 1</diffuse>
+                </material>
+            </visual>
+            <collision name="cylinder_weight3_col">
+                <pose>0.0225 -0.013 0 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <length>0.008</length>
+                        <radius>0.0125</radius>
+                    </cylinder>
+                </geometry>
+            </collision>
+            <visual name="cylinder_weight3_vis">
+                <pose>0.0225 -0.013 0 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <length>0.008</length>
+                        <radius>0.0125</radius>
+                    </cylinder>
+                </geometry>
+                <material>
+                    <ambient>0.66 1 1 1</ambient>
+                    <diffuse>0.66 1 1 1</diffuse>
+                </material>
+            </visual>
+            <collision name="cylinder_pivot_col">
+                <geometry>
+                    <cylinder>
+                        <length>0.010</length>
+                        <radius>0.0125</radius>
+                    </cylinder>
+                </geometry>
+            </collision>
+            <visual name="cylinder_pivot_vis">
+                <geometry>
+                    <cylinder>
+                        <length>0.010</length>
+                        <radius>0.0125</radius>
+                    </cylinder>
+                </geometry>
+                <material>
+                    <ambient>0.2 0.2 0.2 1</ambient>
+                    <diffuse>0.2 0.2 0.2 1</diffuse>
+                </material>
+            </visual>
+        </link>
+    </model>
+</sdf>

@@ -1,0 +1,6 @@
+build
+libmicroros
+wifi_config.h
+!.vscode/*
+.pixi/
+.tools/

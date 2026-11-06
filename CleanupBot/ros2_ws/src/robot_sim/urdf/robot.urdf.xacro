@@ -1,0 +1,562 @@
+<?xml version="1.0"?>
+<robot name="safety_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ── Materials ─────────────────────────────────────────────── -->
+  <material name="acrylic">
+    <color rgba="0.6 0.8 1.0 0.6"/>
+  </material>
+  <material name="dark_grey">
+    <color rgba="0.2 0.2 0.2 1.0"/>
+  </material>
+  <material name="yellow">
+    <color rgba="1.0 0.78 0.0 1.0"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.12 0.35 0.8 1.0"/>
+  </material>
+  <material name="silver">
+    <color rgba="0.75 0.75 0.78 1.0"/>
+  </material>
+
+  <!-- ── Chassis Base ──────────────────────────────────────────── -->
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0.053" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <!-- Simplified chassis plate -->
+    <visual>
+      <geometry><box size="0.18 0.14 0.004"/></geometry>
+      <material name="acrylic"/>
+    </visual>
+    <collision>
+      <geometry><box size="0.18 0.14 0.04"/></geometry>
+    </collision>
+    <inertial>
+      <!-- CoM placed toward rear (-0.035m) to account for rear battery, breadboard, and Pico -->
+      <mass value="0.45"/>
+      <origin xyz="-0.035 0.0 0.0" rpy="0 0 0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0"
+               iyy="0.001" iyz="0" izz="0.002"/>
+    </inertial>
+  </link>
+
+  <!-- ── TT DC Motors (Positioned directly next to the wheels) ─── -->
+  <link name="left_motor">
+    <visual>
+      <geometry><box size="0.042 0.022 0.019"/></geometry>
+      <material name="yellow"/>
+    </visual>
+    <inertial>
+      <mass value="0.035"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0"
+               iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="left_motor_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="left_motor"/>
+    <origin xyz="0.028 0.055 -0.02" rpy="0 0 0"/>
+  </joint>
+
+  <link name="right_motor">
+    <visual>
+      <geometry><box size="0.042 0.022 0.019"/></geometry>
+      <material name="yellow"/>
+    </visual>
+    <inertial>
+      <mass value="0.035"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0"
+               iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="right_motor_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="right_motor"/>
+    <origin xyz="0.028 -0.055 -0.02" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ── Left Drive Wheel (Shifted forward to x=0.028) ──────────── -->
+  <link name="left_wheel">
+    <visual>
+      <geometry><cylinder radius="0.026" length="0.0255"/></geometry>
+      <material name="yellow"/>
+    </visual>
+    <visual>
+      <geometry><cylinder radius="0.033" length="0.025"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <geometry><cylinder radius="0.033" length="0.025"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.08"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0"
+               iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+    <origin xyz="0.028 0.082 -0.02" rpy="-1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+
+  <!-- ── Right Drive Wheel (Shifted forward to x=0.028) ─────────── -->
+  <link name="right_wheel">
+    <visual>
+      <geometry><cylinder radius="0.026" length="0.0255"/></geometry>
+      <material name="yellow"/>
+    </visual>
+    <visual>
+      <geometry><cylinder radius="0.033" length="0.025"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <geometry><cylinder radius="0.033" length="0.025"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.08"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0"
+               iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+    <origin xyz="0.028 -0.082 -0.02" rpy="-1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+
+  <!-- ── Rear Caster (Ground-aligned to z=-0.038) ────────────────── -->
+  <link name="caster_wheel">
+    <visual>
+      <geometry><sphere radius="0.015"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <geometry><sphere radius="0.015"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.025"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0"
+               iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_wheel"/>
+    <origin xyz="-0.08 0.0 -0.038"/>
+  </joint>
+
+  <!-- ── Left Ultrasonic Sensor (Facing Diagonal: +45 deg) ──────── -->
+  <link name="sonar_left">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.003 0.045 0.02"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <visual>
+      <origin xyz="0.008 0.013 0" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.008" length="0.012"/></geometry>
+      <material name="silver"/>
+    </visual>
+    <visual>
+      <origin xyz="0.008 -0.013 0" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.008" length="0.012"/></geometry>
+      <material name="silver"/>
+    </visual>
+    <inertial>
+      <mass value="0.015"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.000005" ixy="0" ixz="0"
+               iyy="0.000005" iyz="0" izz="0.000005"/>
+    </inertial>
+  </link>
+
+  <joint name="sonar_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="sonar_left"/>
+    <!-- Positioned on left diagonal front wing, yaw +45 deg -->
+    <origin xyz="0.075 0.075 0.0" rpy="0 0 0.7854"/>
+  </joint>
+
+  <!-- ── Right Ultrasonic Sensor (Facing Diagonal: -45 deg) ─────── -->
+  <link name="sonar_right">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.003 0.045 0.02"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <visual>
+      <origin xyz="0.008 0.013 0" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.008" length="0.012"/></geometry>
+      <material name="silver"/>
+    </visual>
+    <visual>
+      <origin xyz="0.008 -0.013 0" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.008" length="0.012"/></geometry>
+      <material name="silver"/>
+    </visual>
+    <inertial>
+      <mass value="0.015"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.000005" ixy="0" ixz="0"
+               iyy="0.000005" iyz="0" izz="0.000005"/>
+    </inertial>
+  </link>
+
+  <joint name="sonar_right_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="sonar_right"/>
+    <!-- Positioned on right diagonal front wing, yaw -45 deg -->
+    <origin xyz="0.075 -0.075 0.0" rpy="0 0 -0.7854"/>
+  </joint>
+
+  <!-- ── Gripper Base (Yellow Motor Housing) ────────────────────── -->
+  <link name="gripper_base">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.055 0.048 0.028"/></geometry>
+      <material name="yellow"/>
+    </visual>
+    <visual>
+      <origin xyz="0.028 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.015 0.04 0.02"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <inertial>
+      <mass value="0.055"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00005" ixy="0" ixz="0"
+               iyy="0.00005" iyz="0" izz="0.00005"/>
+    </inertial>
+  </link>
+
+  <joint name="gripper_tilt_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="gripper_base"/>
+    <origin xyz="0.095 0.0 0.012" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.8" upper="0.0" effort="1.0" velocity="1.0"/>
+    <dynamics damping="0.05" friction="0.05"/>
+  </joint>
+
+  <!-- ── Gripper Left Arm (Black Plastic Claw) ──────────────────── -->
+  <link name="gripper_left">
+    <visual>
+      <geometry><box size="0.055 0.008 0.015"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <geometry><box size="0.055 0.008 0.015"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.018"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0"
+               iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="gripper_left_joint" type="prismatic">
+    <parent link="gripper_base"/>
+    <child link="gripper_left"/>
+    <origin xyz="0.035 0.025 0.0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0.0" upper="0.0225" effort="1.0" velocity="0.05"/>
+    <dynamics damping="0.05" friction="0.05"/>
+  </joint>
+
+  <!-- ── Gripper Right Arm (Black Plastic Claw) ─────────────────── -->
+  <link name="gripper_right">
+    <visual>
+      <geometry><box size="0.055 0.008 0.015"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <geometry><box size="0.055 0.008 0.015"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.018"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0"
+               iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="gripper_right_joint" type="prismatic">
+    <parent link="gripper_base"/>
+    <child link="gripper_right"/>
+    <origin xyz="0.035 -0.025 0.0"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0.0" upper="0.0225" effort="1.0" velocity="0.05"/>
+    <dynamics damping="0.05" friction="0.05"/>
+  </joint>
+
+  <!-- ── Camera (ESP32-CAM: Level / straight forward, rpy=0 0 0) ── -->
+  <link name="camera_link">
+    <!-- Acrylic Camera Bracket -->
+    <visual>
+      <origin xyz="-0.004 0.0 0.01" rpy="0 0 0"/>
+      <geometry><box size="0.003 0.035 0.042"/></geometry>
+      <material name="acrylic"/>
+    </visual>
+    <!-- ESP32-CAM PCB -->
+    <visual>
+      <origin xyz="0.0 0.0 0.01" rpy="0 0 0"/>
+      <geometry><box size="0.004 0.027 0.04"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <!-- Camera Lens pointing forward along +X -->
+    <visual>
+      <origin xyz="0.005 0.0 0.016" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.004" length="0.006"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <inertial>
+      <mass value="0.012"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.000002" ixy="0" ixz="0"
+               iyy="0.000002" iyz="0" izz="0.000002"/>
+    </inertial>
+  </link>
+
+  <!-- Camera joint: level / straight forward (rpy=0 0 0) on top of gripper -->
+  <joint name="camera_joint" type="fixed">
+    <parent link="gripper_base"/>
+    <child link="camera_link"/>
+    <origin xyz="0.020 0.0 0.050" rpy="0 0.1354 0"/>
+  </joint>
+
+  <!-- Optical frame for ROS 2 camera processing -->
+  <link name="camera_optical_link"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_optical_link"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+
+  <!-- ── IMU Link ───────────────────────────────────────────────── -->
+  <link name="imu_link">
+    <visual>
+      <geometry><box size="0.015 0.015 0.002"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <inertial>
+      <mass value="0.002"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0000001" ixy="0" ixz="0"
+               iyy="0.0000001" iyz="0" izz="0.0000001"/>
+    </inertial>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="gripper_base"/>
+    <child link="imu_link"/>
+    <origin xyz="0.020 0.0 0.030" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ── Gazebo Surface Friction ───────────────────────────────── -->
+  <gazebo reference="left_wheel">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>1000000.0</kp>
+    <kd>100.0</kd>
+  </gazebo>
+  <gazebo reference="right_wheel">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>1000000.0</kp>
+    <kd>100.0</kd>
+  </gazebo>
+  <gazebo reference="caster_wheel">
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
+  </gazebo>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       ros2_control hardware interface
+  ══════════════════════════════════════════════════════════════════ -->
+  <ros2_control name="gz_ros2_control" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+
+    <!-- Drive wheels — velocity-controlled -->
+    <joint name="left_wheel_joint">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="right_wheel_joint">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <!-- Gripper joints — position-controlled -->
+    <joint name="gripper_tilt_joint">
+      <command_interface name="position">
+        <param name="min">-0.8</param>
+        <param name="max">0.0</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="gripper_left_joint">
+      <command_interface name="position">
+        <param name="min">0.0</param>
+        <param name="max">0.0225</param>
+      </command_interface>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="gripper_right_joint">
+      <command_interface name="position">
+        <param name="min">0.0</param>
+        <param name="max">0.0225</param>
+      </command_interface>
+      <state_interface name="position"/>
+    </joint>
+  </ros2_control>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       Gazebo Harmonic sensor plugins (Bound to specific links)
+  ══════════════════════════════════════════════════════════════════ -->
+  <gz:gz_ros2_control
+      xmlns:gz="http://gazebosim.org/schema">
+    <parameters>$(find robot_sim)/config/ros2_controllers.yaml</parameters>
+  </gz:gz_ros2_control>
+
+  <!-- Camera Sensor (attached to camera_link, referenced to camera_optical_link) -->
+  <gazebo reference="camera_link">
+    <sensor name="gripper_camera" type="camera">
+      <topic>/gz/camera/image</topic>
+      <camera>
+        <optical_frame_id>camera_optical_link</optical_frame_id>
+        <horizontal_fov>1.047</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.01</near>
+          <far>10.0</far>
+        </clip>
+      </camera>
+      <update_rate>30</update_rate>
+      <visualize>false</visualize>
+      <always_on>true</always_on>
+    </sensor>
+  </gazebo>
+
+  <!-- Left Ultrasonic Sensor (attached to sonar_left) -->
+  <gazebo reference="sonar_left">
+    <sensor name="sonar_left" type="gpu_lidar">
+      <topic>/gz/sonar_left/scan</topic>
+      <update_rate>20</update_rate>
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.13</min_angle>
+            <max_angle>0.13</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.13</min_angle>
+            <max_angle>0.13</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.02</min>
+          <max>4.0</max>
+          <resolution>0.01</resolution>
+        </range>
+      </ray>
+    </sensor>
+  </gazebo>
+
+  <!-- Right Ultrasonic Sensor (attached to sonar_right) -->
+  <gazebo reference="sonar_right">
+    <sensor name="sonar_right" type="gpu_lidar">
+      <topic>/gz/sonar_right/scan</topic>
+      <update_rate>20</update_rate>
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.13</min_angle>
+            <max_angle>0.13</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.13</min_angle>
+            <max_angle>0.13</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.02</min>
+          <max>4.0</max>
+          <resolution>0.01</resolution>
+        </range>
+      </ray>
+    </sensor>
+  </gazebo>
+
+  <!-- IMU Sensor (attached to imu_link) -->
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <topic>/gz/imu</topic>
+      <update_rate>100</update_rate>
+      <always_on>true</always_on>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.001</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.001</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.001</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.01</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.01</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.01</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
+
+</robot>

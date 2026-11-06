@@ -1,0 +1,609 @@
+<?xml version="1.0"?>
+<!--
+  CleanupBot: Floor safety & infant hazard retrieval robot.
+  Parts Layout & Ground Truth Kinematics:
+  - Front (+X): Curved edge of chassis (axle at X=0, front edge at +0.077m),
+    drive wheels, OWI-535 gripper assembly (yellow motor housing, tilt joint, jaw clamps)
+  - Eye-in-Hand Sensors: ESP32-CAM (CAD mesh module) & BNO085 IMU mounted to gripper_base
+  - Rear (-X): Wide wing edge of chassis extending to -0.130m, caster ball at -0.105m underneath
+  - Rear Deck: 6xAA battery pack resting on chassis at X=-0.070m, 4cm raised platform with brass standoffs,
+    and the other student's authentic breadboard CAD mesh (with Microcontroller) on top.
+-->
+<robot name="cleanupbot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ===== Dimensions from config.py & physical build ===== -->
+  <xacro:property name="wheel_radius" value="0.033"/>
+  <xacro:property name="wheel_width" value="0.025"/>
+  <xacro:property name="wheel_separation" value="0.140"/>
+  <xacro:property name="wheel_mass" value="0.05"/>
+
+  <xacro:property name="chassis_length" value="0.207"/>
+  <xacro:property name="chassis_width" value="0.100"/>
+  <xacro:property name="chassis_mass" value="0.50"/>
+  <!-- Chassis center when rotated so curved edge is forward (+X) -->
+  <xacro:property name="chassis_x" value="-0.0265"/>
+  <xacro:property name="chassis_z" value="0.0128"/>
+
+  <!-- Rear caster wheel (mounted under the rear wing section) -->
+  <xacro:property name="caster_radius" value="0.0165"/>
+  <xacro:property name="caster_x" value="-0.105"/>
+
+  <!-- Gripper hinge pin offset from axle midpoint (front curved edge) -->
+  <!-- Located 7cm above ground (ground at -0.033m -> Z = +0.037m, 3cm above chassis front-top) -->
+  <xacro:property name="joint_x" value="0.080"/>
+  <xacro:property name="joint_z" value="0.037"/>
+
+  <!-- Rear electronics platform & battery center (4cm above chassis plate) -->
+  <xacro:property name="rear_x" value="-0.070"/>
+  <xacro:property name="platform_z" value="0.053"/>
+
+  <!-- Meshes path: resolves to absolute file URI -->
+  <xacro:property name="mesh_dir" value="file://$(find robot_sim)/urdf/meshes"/>
+
+  <!-- ===== Inertia helpers ===== -->
+  <xacro:macro name="box_inertia" params="m x y z">
+    <inertia ixx="${m*(y*y+z*z)/12}" ixy="0" ixz="0"
+             iyy="${m*(x*x+z*z)/12}" iyz="0"
+             izz="${m*(x*x+y*y)/12}"/>
+  </xacro:macro>
+  <xacro:macro name="cylinder_inertia" params="m r h">
+    <inertia ixx="${m*(3*r*r+h*h)/12}" ixy="0" ixz="0"
+             iyy="${m*(3*r*r+h*h)/12}" iyz="0"
+             izz="${m*r*r/2}"/>
+  </xacro:macro>
+
+  <!-- ===== Base footprint & Base Link ===== -->
+  <link name="base_footprint"/>
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <!-- Acrylic chassis plate from CAD: rotated 180 deg so curved edge faces forward (+X) -->
+    <visual name="chassis_plate">
+      <origin xyz="0 0 0" rpy="0 0 3.14159"/>
+      <geometry><mesh filename="${mesh_dir}/body_06.stl"/></geometry>
+      <material name="acrylic_blue"><color rgba="0.62 0.81 0.93 0.75"/></material>
+    </visual>
+
+    <!-- TT DC gear motors & brackets underneath chassis -->
+    <visual name="tt_motors">
+      <origin xyz="0 0 0" rpy="0 0 3.14159"/>
+      <geometry><mesh filename="${mesh_dir}/body_05.stl"/></geometry>
+      <material name="motor_yellow"><color rgba="0.95 0.75 0.05 1.0"/></material>
+    </visual>
+
+    <!-- Chassis collision & inertial -->
+    <collision>
+      <origin xyz="${chassis_x} 0 ${chassis_z}"/>
+      <geometry><box size="${chassis_length} ${chassis_width} 0.04"/></geometry>
+    </collision>
+    <inertial>
+      <!-- CoM placed toward rear (-0.035m) reflecting rear battery and electronics -->
+      <origin xyz="-0.035 0 0.020"/>
+      <mass value="${chassis_mass}"/>
+      <xacro:box_inertia m="${chassis_mass}" x="${chassis_length}" y="${chassis_width}" z="0.04"/>
+    </inertial>
+  </link>
+
+  <!-- ===== Drive wheels ===== -->
+  <xacro:macro name="drive_wheel" params="side y_sign">
+    <link name="${side}_wheel_link">
+      <visual>
+        <geometry><mesh filename="${mesh_dir}/wheel_${side}_01.stl"/></geometry>
+        <material name="tire_black"><color rgba="0.15 0.15 0.15 1"/></material>
+      </visual>
+      <collision>
+        <geometry><sphere radius="${wheel_radius}"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="${wheel_mass}"/>
+        <xacro:cylinder_inertia m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
+      </inertial>
+    </link>
+    <joint name="${side}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${side}_wheel_link"/>
+      <origin xyz="0 ${y_sign*wheel_separation/2} 0" rpy="${-pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <gazebo reference="${side}_wheel_link">
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:drive_wheel side="left" y_sign="1"/>
+  <xacro:drive_wheel side="right" y_sign="-1"/>
+
+  <!-- ===== Rear Caster Ball (Under the rear wing deck) ===== -->
+  <link name="caster_link">
+    <visual>
+      <geometry><sphere radius="${caster_radius}"/></geometry>
+      <material name="caster_metal"><color rgba="0.65 0.65 0.65 1"/></material>
+    </visual>
+    <collision>
+      <geometry><sphere radius="${caster_radius}"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.025"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+  </link>
+  <joint name="caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_link"/>
+    <origin xyz="${caster_x} 0 ${caster_radius - wheel_radius}"/>
+  </joint>
+  <gazebo reference="caster_link">
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
+  </gazebo>
+
+  <!-- ===== Rear 6xAA Battery Pack (Between chassis and raised platform) ===== -->
+  <link name="battery_pack">
+    <!-- Battery holder box -->
+    <visual>
+      <origin xyz="0 0 0.010" rpy="0 0 0"/>
+      <geometry><box size="0.058 0.048 0.018"/></geometry>
+      <material name="battery_case_black"><color rgba="0.1 0.1 0.1 1"/></material>
+    </visual>
+    <!-- 6x AA battery cells -->
+    <visual>
+      <origin xyz="0 0.016 0.018" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.0068" length="0.050"/></geometry>
+      <material name="battery_gold"><color rgba="0.85 0.65 0.1 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0.0 0.018" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.0068" length="0.050"/></geometry>
+      <material name="battery_gold"/>
+    </visual>
+    <visual>
+      <origin xyz="0 -0.016 0.018" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.0068" length="0.050"/></geometry>
+      <material name="battery_gold"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.014" rpy="0 0 0"/>
+      <geometry><box size="0.058 0.048 0.026"/></geometry>
+    </collision>
+    <inertial>
+      <!-- 6x AA cells (~24g each) + holder = ~0.150 kg providing rear counterbalance -->
+      <mass value="0.150"/>
+      <origin xyz="0 0 0.014" rpy="0 0 0"/>
+      <xacro:box_inertia m="0.150" x="0.058" y="0.048" z="0.026"/>
+    </inertial>
+  </link>
+  <joint name="battery_pack_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="battery_pack"/>
+    <origin xyz="${rear_x} 0.0 0.013" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Rear Standoff Platform (4cm above chassis) ===== -->
+  <link name="rear_platform">
+    <!-- Platform deck plate -->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.090 0.075 0.003"/></geometry>
+      <material name="platform_acrylic"><color rgba="0.65 0.85 0.95 0.7"/></material>
+    </visual>
+    <!-- 4x Standoff brass pillars (4cm tall connecting chassis to platform) -->
+    <visual>
+      <origin xyz="0.038 0.030 -0.020" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.003" length="0.040"/></geometry>
+      <material name="brass_standoff"><color rgba="0.80 0.70 0.25 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0.038 -0.030 -0.020" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.003" length="0.040"/></geometry>
+      <material name="brass_standoff"/>
+    </visual>
+    <visual>
+      <origin xyz="-0.038 0.030 -0.020" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.003" length="0.040"/></geometry>
+      <material name="brass_standoff"/>
+    </visual>
+    <visual>
+      <origin xyz="-0.038 -0.030 -0.020" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.003" length="0.040"/></geometry>
+      <material name="brass_standoff"/>
+    </visual>
+    <collision>
+      <geometry><box size="0.090 0.075 0.003"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.040"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+    </inertial>
+  </link>
+  <joint name="rear_platform_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="rear_platform"/>
+    <origin xyz="${rear_x} 0.0 ${platform_z}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Breadboard on top of platform (Using other student's authentic CAD mesh) ===== -->
+  <link name="breadboard">
+    <!-- Authentic breadboard mesh from student's CAD model -->
+    <visual name="breadboard_cad">
+      <origin xyz="0 0 0.002" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/breadboard.stl"/></geometry>
+      <material name="breadboard_white"><color rgba="0.95 0.95 0.95 1.0"/></material>
+    </visual>
+    <!-- Microcontroller PCB (Pico) on top of breadboard -->
+    <visual name="pico_pcb">
+      <origin xyz="0 0 0.018" rpy="0 0 0"/>
+      <geometry><box size="0.051 0.021 0.003"/></geometry>
+      <material name="pico_green"><color rgba="0.10 0.70 0.30 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.010" rpy="0 0 0"/>
+      <geometry><box size="0.085 0.055 0.020"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.050"/>
+      <origin xyz="0 0 0.010"/>
+      <inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+    </inertial>
+  </link>
+  <joint name="breadboard_joint" type="fixed">
+    <parent link="rear_platform"/>
+    <child link="breadboard"/>
+    <origin xyz="0.0 0.0 0.002" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== FRONT: OWI-535 Gripper Base (Yellow Gearbox Bolted to Chassis) ===== -->
+  <link name="gripper_base">
+    <!-- Static pivot bracket matching ground-truth CAD (3cm diameter shaft) -->
+    <visual name="gripper_base_cad">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/gripper_base.stl"/></geometry>
+      <material name="claw_collar"><color rgba="0.15 0.15 0.18 1"/></material>
+    </visual>
+    <!-- Yellow motor gearbox casing: 3cm wide by 6cm long, bolted to chassis deck -->
+    <visual name="tilt_motor_box">
+      <origin xyz="-0.030 0 -0.012" rpy="0 0 0"/>
+      <geometry><box size="0.060 0.030 0.036"/></geometry>
+      <material name="yellow_housing"><color rgba="0.95 0.75 0.05 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.030 0 -0.012" rpy="0 0 0"/>
+      <geometry><box size="0.060 0.030 0.036"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.065"/>
+      <origin xyz="-0.020 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00005" ixy="0" ixz="0" iyy="0.00005" iyz="0" izz="0.00005"/>
+    </inertial>
+  </link>
+  <joint name="gripper_base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gripper_base"/>
+    <origin xyz="${joint_x} 0.0 ${joint_z}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Gripper Head (Tilting Assembly: Transverse Motor & Gear Hubs) ===== -->
+  <link name="gripper_head">
+    <!-- Clean transverse motor housing, horizontal gear hubs, and 4-bar linkage bars -->
+    <visual name="gripper_head_cad">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/gripper_head.stl"/></geometry>
+      <material name="motor_black"><color rgba="0.15 0.15 0.18 1"/></material>
+    </visual>
+    <!-- Clear acrylic L-bracket for eye-in-hand camera and IMU -->
+    <visual name="camera_bracket_shelf">
+      <origin xyz="0.015 0 0.025" rpy="0 0 0"/>
+      <geometry><box size="0.032 0.035 0.003"/></geometry>
+      <material name="acrylic_clear"><color rgba="0.85 0.90 0.95 0.6"/></material>
+    </visual>
+    <visual name="camera_bracket_back">
+      <origin xyz="-0.001 0 0.044" rpy="0 0 0"/>
+      <geometry><box size="0.003 0.035 0.038"/></geometry>
+      <material name="acrylic_clear"><color rgba="0.85 0.90 0.95 0.6"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0.030 0 0.010" rpy="0 0 0"/>
+      <geometry><box size="0.060 0.050 0.025"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.045"/>
+      <origin xyz="0.030 0 0.010" rpy="0 0 0"/>
+      <inertia ixx="0.00003" ixy="0" ixz="0" iyy="0.00003" iyz="0" izz="0.00003"/>
+    </inertial>
+  </link>
+
+  <!-- Gripper Tilt Joint (Revolute around Y, pitches head and eye-in-hand sensors up/down) -->
+  <joint name="gripper_tilt_joint" type="revolute">
+    <parent link="gripper_base"/>
+    <child link="gripper_head"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.6" upper="0.4" effort="1.5" velocity="1.0"/>
+    <dynamics damping="0.05" friction="0.05"/>
+  </joint>
+
+  <!-- ===== Authentic Articulated Claw Fingers (Left and Right) ===== -->
+  <link name="gripper_claw_left">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/gripper_claw_left.stl"/></geometry>
+      <material name="claw_mat"><color rgba="0.20 0.20 0.20 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0.022 -0.002 -0.005" rpy="0 0 0"/>
+      <geometry><box size="0.045 0.008 0.016"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.012"/>
+      <origin xyz="0.020 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+    </inertial>
+  </link>
+  <joint name="gripper_claw_left_joint" type="prismatic">
+    <parent link="gripper_head"/>
+    <child link="gripper_claw_left"/>
+    <origin xyz="0.0580 0.0170 0.0100" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0.0" upper="0.015" effort="5.0" velocity="0.05"/>
+    <dynamics damping="0.05" friction="0.05"/>
+  </joint>
+
+  <link name="gripper_claw_right">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/gripper_claw_right.stl"/></geometry>
+      <material name="claw_mat"><color rgba="0.20 0.20 0.20 1"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0.022 0.002 0.0" rpy="0 0 0"/>
+      <geometry><box size="0.045 0.008 0.016"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.012"/>
+      <origin xyz="0.020 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+    </inertial>
+  </link>
+  <joint name="gripper_claw_right_joint" type="prismatic">
+    <parent link="gripper_head"/>
+    <child link="gripper_claw_right"/>
+    <origin xyz="0.0580 -0.0170 0.0100" rpy="0 0 0"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0.0" upper="0.015" effort="5.0" velocity="0.05"/>
+    <dynamics damping="0.05" friction="0.05"/>
+  </joint>
+
+  <!-- ===== EYE-IN-HAND CAMERA (Mounted to gripper_head, tilts with head) ===== -->
+  <link name="camera_link">
+    <!-- Detailed ESP32-CAM assembly from CAD meshes -->
+    <visual name="cam_body2">
+      <origin xyz="-0.120 0 -0.045" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/body_02.stl"/></geometry>
+      <material name="cam_c2"><color rgba="0.80 0.80 0.80 1"/></material>
+    </visual>
+    <visual name="cam_body3">
+      <origin xyz="-0.120 0 -0.045" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/body_03.stl"/></geometry>
+      <material name="cam_c3"><color rgba="0.29 0.29 0.29 1"/></material>
+    </visual>
+    <visual name="cam_body7">
+      <origin xyz="-0.120 0 -0.045" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/body_07.stl"/></geometry>
+      <material name="cam_c7"><color rgba="1.00 1.00 0.00 1"/></material>
+    </visual>
+    <visual name="cam_body8">
+      <origin xyz="-0.120 0 -0.045" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/body_08.stl"/></geometry>
+      <material name="cam_c8"><color rgba="1.00 1.00 1.00 1"/></material>
+    </visual>
+    <visual name="cam_body9">
+      <origin xyz="-0.120 0 -0.045" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/body_09.stl"/></geometry>
+      <material name="cam_c9"><color rgba="0.44 0.44 0.44 1"/></material>
+    </visual>
+    <visual name="cam_body10">
+      <origin xyz="-0.120 0 -0.045" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/body_10.stl"/></geometry>
+      <material name="cam_c10"><color rgba="0.33 0.67 1.00 1"/></material>
+    </visual>
+    <visual name="cam_body12">
+      <origin xyz="-0.120 0 -0.045" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/body_12.stl"/></geometry>
+      <material name="cam_c12"><color rgba="1.00 0.67 0.00 1"/></material>
+    </visual>
+    <visual name="cam_body13">
+      <origin xyz="-0.120 0 -0.045" rpy="0 0 0"/>
+      <geometry><mesh filename="${mesh_dir}/body_13.stl"/></geometry>
+      <material name="cam_c13"><color rgba="0.67 0.33 0.00 1"/></material>
+    </visual>
+
+    <inertial>
+      <mass value="0.015"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="gripper_head"/>
+    <child link="camera_link"/>
+    <!-- Positioned matching camera_calibration.json & physical true height (12.3cm above floor): -->
+    <!-- X = 0.020m rel to hinge (10cm from axle), Z = 0.053m rel to hinge (12.3cm from floor) -->
+    <!-- Pitch bias 8.39 deg down, roll bias -1.01 deg -->
+    <origin xyz="0.020 0.0 0.053" rpy="-0.0176 0.1464 0"/>
+  </joint>
+
+  <!-- ===== EYE-IN-HAND IMU (BNO085 Mounted on acrylic shelf of gripper_head) ===== -->
+  <link name="imu_link">
+    <visual>
+      <geometry><box size="0.018 0.015 0.003"/></geometry>
+      <material name="imu_purple"><color rgba="0.55 0.15 0.75 1"/></material>
+    </visual>
+    <inertial>
+      <mass value="0.003"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="gripper_head"/>
+    <child link="imu_link"/>
+    <origin xyz="0.020 0.0 0.030" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===== Front Corner Ultrasonic Sensors HC-SR04 (Angled 45 deg outward on front corners) ===== -->
+  <link name="ultrasonic_sensor">
+    <!-- Right front corner acrylic bracket & HC-SR04 sensor angled -45 deg outward -->
+    <visual name="sonar_right_bracket">
+      <origin xyz="-0.010 0 -0.010" rpy="0 0 0"/>
+      <geometry><box size="0.020 0.045 0.003"/></geometry>
+      <material name="acrylic_clear"><color rgba="0.85 0.90 0.95 0.6"/></material>
+    </visual>
+    <visual name="sonar_right_pcb">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.002 0.045 0.020"/></geometry>
+      <material name="sonar_pcb"><color rgba="0.10 0.25 0.85 1"/></material>
+    </visual>
+    <visual name="sonar_right_tx">
+      <origin xyz="0.006 0.013 0" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.008" length="0.012"/></geometry>
+      <material name="sonar_transducer"><color rgba="0.85 0.85 0.85 1"/></material>
+    </visual>
+    <visual name="sonar_right_rx">
+      <origin xyz="0.006 -0.013 0" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.008" length="0.012"/></geometry>
+      <material name="sonar_transducer"/>
+    </visual>
+    <inertial>
+      <mass value="0.010"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+  </link>
+  <joint name="ultrasonic_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="ultrasonic_sensor"/>
+    <origin xyz="0.055 -0.055 0.020" rpy="0 0 -0.7854"/>
+  </joint>
+
+  <!-- Left front corner ultrasonic sensor angled +45 deg outward -->
+  <link name="ultrasonic_sensor_left">
+    <visual name="sonar_left_bracket">
+      <origin xyz="-0.010 0 -0.010" rpy="0 0 0"/>
+      <geometry><box size="0.020 0.045 0.003"/></geometry>
+      <material name="acrylic_clear"><color rgba="0.85 0.90 0.95 0.6"/></material>
+    </visual>
+    <visual name="sonar_left_pcb">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.002 0.045 0.020"/></geometry>
+      <material name="sonar_pcb"/>
+    </visual>
+    <visual name="sonar_left_tx">
+      <origin xyz="0.006 0.013 0" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.008" length="0.012"/></geometry>
+      <material name="sonar_transducer"/>
+    </visual>
+    <visual name="sonar_left_rx">
+      <origin xyz="0.006 -0.013 0" rpy="0 1.5708 0"/>
+      <geometry><cylinder radius="0.008" length="0.012"/></geometry>
+      <material name="sonar_transducer"/>
+    </visual>
+    <inertial>
+      <mass value="0.010"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+  </link>
+  <joint name="ultrasonic_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="ultrasonic_sensor_left"/>
+    <origin xyz="0.055 0.055 0.020" rpy="0 0 0.7854"/>
+  </joint>
+
+  <!-- ===== Gazebo Harmonic Sensors ===== -->
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>50</update_rate>
+      <topic>/imu</topic>
+      <imu>
+        <angular_velocity>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.02</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.02</stddev></noise></y>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="camera_link">
+    <sensor name="camera_sensor" type="camera">
+      <always_on>true</always_on>
+      <update_rate>10</update_rate>
+      <topic>/camera/image_raw</topic>
+      <camera>
+        <!-- Matching VisionMCP/camera_calibration.json: FOV 57.0 deg (0.9948 rad), 1024x768 -->
+        <horizontal_fov>0.9948</horizontal_fov>
+        <image>
+          <width>1024</width>
+          <height>768</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.05</near>
+          <far>20</far>
+        </clip>
+        <distortion>
+          <k1>-0.250523</k1>
+          <k2>1.055211</k2>
+          <k3>-1.331916</k3>
+          <p1>0.011043</p1>
+          <p2>-0.015481</p2>
+          <center>0.4633 0.5326</center>
+        </distortion>
+      </camera>
+    </sensor>
+  </gazebo>
+
+  <!-- ===== Gazebo Harmonic Plugins ===== -->
+  <gazebo>
+    <plugin filename="gz-sim-diff-drive-system"
+            name="gz::sim::systems::DiffDrive">
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>${wheel_separation}</wheel_separation>
+      <wheel_radius>${wheel_radius}</wheel_radius>
+      <max_linear_velocity>0.3</max_linear_velocity>
+      <min_linear_velocity>-0.3</min_linear_velocity>
+      <max_angular_velocity>1.5</max_angular_velocity>
+      <min_angular_velocity>-1.5</min_angular_velocity>
+      <max_linear_acceleration>1.0</max_linear_acceleration>
+      <min_linear_acceleration>-1.0</min_linear_acceleration>
+      <topic>/cmd_vel</topic>
+      <odom_topic>/odom</odom_topic>
+      <tf_topic>/tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+      <odom_publish_frequency>30</odom_publish_frequency>
+    </plugin>
+
+    <plugin filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher">
+      <topic>/joint_states</topic>
+    </plugin>
+
+    <!-- Ground Truth Odometry: Publishes true physical pose to detect collisions independent of wheel slip -->
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher">
+      <odom_topic>/model/cleanupbot/odometry</odom_topic>
+      <odom_frame>odom</odom_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+      <dimensions>3</dimensions>
+    </plugin>
+  </gazebo>
+
+</robot>

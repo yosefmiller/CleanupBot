@@ -1,0 +1,94 @@
+[workspace]
+channels = ["https://prefix.dev/robostack-jazzy", "conda-forge"]
+name = "EmbodiedAgenticAI"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[dependencies]
+python                              = ">=3.11,<3.13"
+pyyaml                              = "==6.0.1"
+pixi-pycharm                        = ">=0.0.12,<0.0.13"
+colcon-common-extensions            = "*"
+
+# ── ROS2 Jazzy core ───────────────────────────────────────────────
+ros-jazzy-desktop                   = "*"
+ros-jazzy-xacro                     = "*"
+ros-jazzy-tf-transformations        = "*"
+ros-jazzy-robot-state-publisher     = "*"
+ros-jazzy-joint-state-publisher     = "*"
+ros-jazzy-joint-state-broadcaster   = "*"
+
+# ── Gazebo Harmonic bridge (replaces gazebo-classic plugins) ──────
+ros-jazzy-ros-gz                    = "*"
+ros-jazzy-ros-gz-sim                = "*"
+ros-jazzy-ros-gz-bridge             = "*"
+ros-jazzy-ros-gz-image              = "*"
+ros-jazzy-gz-ros2-control           = "*"
+
+# ── ros2_control (replaces diff_drive gazebo plugin) ─────────────
+ros-jazzy-ros2-control              = "*"
+ros-jazzy-ros2-controllers          = "*"
+ros-jazzy-diff-drive-controller     = "*"
+ros-jazzy-controller-manager        = "*"
+
+# ── Python / AI ───────────────────────────────────────────────────
+ollama                              = ">=0.32.15,<0.33"
+langchain-ollama                    = ">=0.3.10,<1.0"
+langchain-core                      = ">=0.3.81,<1.0"
+langchain-mcp-adapters              = "==0.1.10"
+mcp                                 = ">=1.28.1,<2.0.0"
+requests                            = ">=2.34.2,<3"
+chromadb                            = ">=1.5.9,<2"
+posthog                             = "*"
+pydantic-settings                   = "*"
+numpy                               = "*"
+
+# ── Build tools ─────────────────────────────────────────────────────
+cmake                               = ">=4.4.4,<5"
+make                                = ">=4.4.1,<5"
+ninja                               = ">=1.13.2,<2"
+c-compiler                          = ">=2.0.0,<3"
+cxx-compiler                        = ">=2.0.0,<3"
+git                                 = ">=2.56.0,<3"
+cryptography = "*"
+
+[constraints]
+mcp                    = "<2.0.0"
+langchain-core         = "<1.0.0"
+langchain-mcp-adapters = "<0.2.0"
+
+[pypi-dependencies]
+jpl-rosa = "*"
+vcstool = ">=0.3.0, <0.4"
+
+[activation]
+scripts = []
+env = {
+    # Bind Gazebo Transport to localhost to avoid WSL2 external interface timeouts
+    GZ_IP = "127.0.0.1",
+    # Fix WSL2 / WSLg OpenGL issues for Gazebo Harmonic (OGRE 2 requires OpenGL 4.3+)
+    MESA_GL_VERSION_OVERRIDE = "4.5",
+    MESA_GLSL_VERSION_OVERRIDE = "450",
+    QT_QPA_PLATFORM = "xcb",
+    # Gazebo Harmonic resource paths
+    GZ_SIM_RESOURCE_PATH = "$CONDA_PREFIX/share/gz/gz-sim8/worlds:$PIXI_PROJECT_ROOT/CleanupBot/ros2_ws/src/robot_sim/worlds",
+    GZ_VERSION = "8",
+}
+
+[tasks]
+setup-micro-ros-agent = "bash -c 'mkdir -p .micro_ros_agent_ws/src && [ -d .micro_ros_agent_ws/src/micro_ros_agent ] || git clone --depth 1 -b jazzy https://github.com/micro-ROS/micro-ROS-Agent.git .micro_ros_agent_ws/src/micro_ros_agent && [ -d .micro_ros_agent_ws/src/micro_ros_msgs ] || git clone --depth 1 -b jazzy https://github.com/micro-ROS/micro_ros_msgs.git .micro_ros_agent_ws/src/micro_ros_msgs && [ -f .micro_ros_agent_ws/install/micro_ros_agent/lib/micro_ros_agent/micro_ros_agent ] || (cd .micro_ros_agent_ws && colcon build --symlink-install || (find . -name \"common.h\" -path \"*/spdlog/*\" -exec sed -i \"s/ || std::is_same<remove_cvref_t<T>, fmt::basic_runtime<Char>>::value//g\" {} + && colcon build --symlink-install))'"
+micro-ros-agent = {
+    cmd = "bash -c 'source .micro_ros_agent_ws/install/setup.bash && ros2 run micro_ros_agent micro_ros_agent udp4 --port 8889 -v6'",
+    depends-on = ["setup-micro-ros-agent"]
+}
+daemon    = "ros2 daemon start"
+build-sim   = { cmd = "colcon build --symlink-install", cwd = "CleanupBot/ros2_ws" }
+sim         = { cmd = "bash -c 'source CleanupBot/ros2_ws/install/setup.bash && ros2 launch robot_sim sim.launch.py'", depends-on = ["build-sim"] }
+sim-custom  = { cmd = "bash -c 'source CleanupBot/ros2_ws/install/setup.bash && ros2 launch robot_sim sim.launch.py world:=custom'", depends-on = ["build-sim"] }
+sim-agent   = { cmd = "bash -c 'source CleanupBot/ros2_ws/install/setup.bash && python CleanupBot/gazebo_car_agent.py'" }
+sim-example = { cmd = "gz sim -r diff_drive.sdf" }
+#bridge   = "ros2 run robot_sim sim_bridge"
+#agent    = { cmd = "python agent.py", depends_on = ["build"] }
+
+# Build micro-ROS static library (libmicroros.a) for Pico 2 W
+build-libmicroros = "bash Robot/micro-ros-builder/build-library.sh"

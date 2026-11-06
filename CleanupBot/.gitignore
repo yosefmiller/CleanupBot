@@ -1,0 +1,33 @@
+# Python cache & compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Pixi & Conda environments
+.pixi/
+.env
+
+# Model weights
+*.pt
+VisionMCP/weights/*.pt
+VisionMCP/weights/**/*.pt
+
+# Ephemeral test captures
+VisionMCP/images/*_test.jpg
+VisionMCP/images/*_feed.jpg
+VisionMCP/images/extrinsics_calibration_overlay.jpg
+
+# ROS2 build artifacts
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+robot_memory_db/
+snapshots/
